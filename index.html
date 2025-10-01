@@ -1,146 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InnovaTrack</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; }
-nav { background: #16a34a; color: white; padding: 10px 20px; }
-nav h1 { margin: 0; font-size: 20px; }
-.container { max-width: 600px; margin: 20px auto; padding: 10px; }
-input { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-button { padding: 10px; margin-top: 5px; background: #16a34a; color: white; border: none; border-radius: 5px; cursor: pointer; }
-button:hover { background: #15803d; }
-.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 10px; }
-.seat { padding: 8px; border: 1px solid #16a34a; border-radius: 5px; text-align: center; }
-.occupied { background: #16a34a; color: white; }
-.login { max-width: 300px; margin: 50px auto; text-align: center; }
-</style>
+  <meta charset="UTF-8">
+  <title>InnovaTrack</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0fff0;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      background-color: green;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #e6f7e6;
+    }
+    .login-container input {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      width: 16rem;
+      color: black;
+    }
+    button {
+      background-color: green;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: darkgreen;
+    }
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5rem;
+    }
+    .seat {
+      padding: 0.5rem;
+      border: 1px solid #000;
+      border-radius: 0.25rem;
+      text-align: center;
+    }
+    .seat.occupied {
+      background-color: green;
+      color: white;
+    }
+    th {
+      padding: 4px;
+    }
+  </style>
 </head>
 <body>
 
-<div id="app"></div>
+  <!-- Login -->
+  <div id="loginPage" class="login-container">
+    <h1 style="font-size:2rem; color:green; margin-bottom:1rem;">InnovaTrack Login</h1>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="handleLogin()">Login</button>
+  </div>
 
-<script>
-const students = {
-  1: 'Alice', 2: 'Bob', 3: 'Charlie', 4: 'David', 5: 'Eva',
-  6: 'Fiona', 7: 'George', 8: 'Hannah', 9: 'Ian', 10: 'Julia',
-  11: 'Kevin', 12: 'Lara', 13: 'Mona', 14: 'Nathan', 15: 'Olivia',
-  16: 'Peter', 17: 'Quinn', 18: 'Rachel', 19: 'Sam', 20: 'Tina',
-  21: 'Uma', 22: 'Victor', 23: 'Wendy', 24: 'Xander', 25: 'Yara',
-  26: 'Zane', 27: 'Amy', 28: 'Brian', 29: 'Cathy', 30: 'Derek'
-};
+  <!-- Main App -->
+  <div id="appPage" style="display:none;">
+    <nav>
+      <h1>InnovaTrack</h1>
+    </nav>
+    <div style="padding:1rem;">
+      <h2 style="font-size:1.5rem; font-weight:bold; color:green; margin-bottom:1rem;">Seat Plan (Manual Input)</h2>
+      
+      <form onsubmit="handleManualSubmit(event)" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+        <input type="text" id="manualInput" placeholder="Enter seat number manually" style="flex:1; padding:0.5rem; border:1px solid #000; border-radius:0.25rem;">
+        <button type="submit">Mark Seat</button>
+      </form>
 
-const today = new Date().toLocaleDateString();
-let seatData = [];
-let isAuthenticated = false;
+      <button onclick="handlePrintAndDownload()" style="margin-bottom:1rem;">Print Attendance</button>
 
-function initSeats() {
-  const savedDate = localStorage.getItem('attendanceDate');
-  if (savedDate !== today) {
-    seatData = Array.from({ length: 30 }, (_, i) => ({ number: i + 1, occupied: false }));
-    localStorage.setItem('attendanceDate', today);
-    localStorage.setItem('seatData', JSON.stringify(seatData));
-  } else {
-    const savedSeats = JSON.parse(localStorage.getItem('seatData') || '[]');
-    seatData = savedSeats.length ? savedSeats : Array.from({ length: 30 }, (_, i) => ({ number: i + 1, occupied: false }));
-  }
-}
-
-function saveSeats() {
-  localStorage.setItem('seatData', JSON.stringify(seatData));
-}
-
-function renderLogin() {
-  document.getElementById('app').innerHTML = `
-    <div class="login">
-      <h1>InnovaTrack Login</h1>
-      <input id="username" type="text" placeholder="Username">
-      <input id="password" type="password" placeholder="Password">
-      <button id="loginBtn">Login</button>
+      <div id="seatGrid" class="seat-grid"></div>
     </div>
-  `;
-  document.getElementById('loginBtn').onclick = handleLogin;
-}
+  </div>
 
-function renderSeatPlan() {
-  let gridHTML = seatData.map(seat => `
-    <div class="seat ${seat.occupied ? 'occupied' : ''}">
-      ${seat.number} - ${seat.occupied ? seat.student : students[seat.number] || ''}
-    </div>
-  `).join('');
+  <script>
+    const students = {
+      1: 'Rosa', 2: 'Bob', 3: 'Charlie', 4: 'David', 5: 'Eva',
+      6: 'Fiona', 7: 'George', 8: 'Hannah', 9: 'Ian', 10: 'Julia',
+      11: 'Kevin', 12: 'Lara', 13: 'Mona', 14: 'Nathan', 15: 'Olivia',
+      16: 'Peter', 17: 'Quinn', 18: 'Rachel', 19: 'Sam', 20: 'Tina',
+      21: 'Uma', 22: 'Victor', 23: 'Wendy', 24: 'Xander', 25: 'Yara',
+      26: 'Zane', 27: 'Amy', 28: 'Brian', 29: 'Cathy', 30: 'Derek'
+    };
 
-  document.getElementById('app').innerHTML = `
-    <nav><h1>InnovaTrack</h1></nav>
-    <div class="container">
-      <h2>Seat Plan (Manual Input)</h2>
-      <input id="manualInput" type="text" placeholder="Enter seat number manually">
-      <button id="markSeatBtn">Mark Seat</button>
-      <button id="printDownloadBtn">Print & Download Seat Data</button>
-      <div class="grid">${gridHTML}</div>
-    </div>
-  `;
+    const today = new Date();
+    const todayString = today.toLocaleDateString();
+    const monthYear = today.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  document.getElementById('markSeatBtn').onclick = handleManualSubmit;
-  document.getElementById('printDownloadBtn').onclick = handlePrintAndDownload;
-}
+    let seatData = [];
+    let seatHistory = JSON.parse(localStorage.getItem('seatHistory') || '{}');
 
-function handleLogin() {
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  if (username === 'marvin' && password === 'grafil') {
-    isAuthenticated = true;
-    renderSeatPlan();
-  } else {
-    alert('Incorrect username or password.');
-  }
-}
+    function initSeats() {
+      if (!seatHistory[todayString]) {
+        seatData = Array.from({ length: 30 }, (_, i) => ({ number: i + 1, occupied: false }));
+        seatHistory[todayString] = seatData;
+        localStorage.setItem('seatHistory', JSON.stringify(seatHistory));
+      } else {
+        seatData = seatHistory[todayString];
+      }
+      renderSeats();
+    }
 
-function handleManualSubmit() {
-  const input = document.getElementById('manualInput').value;
-  const seatNumber = parseInt(input.replace(/[^0-9]/g, ""));
-  if (!isNaN(seatNumber) && seatNumber >= 1 && seatNumber <= 30) {
-    const studentName = students[seatNumber] || "Unknown";
-    const timestamp = new Date().toLocaleTimeString();
-    seatData = seatData.map(seat => seat.number === seatNumber ? { ...seat, occupied: true, student: studentName, timestamp, date: today } : seat);
-    saveSeats();
-    document.getElementById('manualInput').value = '';
-    renderSeatPlan();
-  } else {
-    alert('Invalid seat number.');
-  }
-}
+    function saveSeats(updatedSeats) {
+      seatData = updatedSeats;
+      seatHistory[todayString] = updatedSeats;
+      localStorage.setItem('seatHistory', JSON.stringify(seatHistory));
+      renderSeats();
+    }
 
-function handlePrintAndDownload() {
-  let html = `<h2>Seat Plan</h2><p>Date: ${today}</p>`;
-  html += '<table border="1" style="border-collapse: collapse; width: 100%">';
-  html += '<tr><th>Seat Number</th><th>Name</th><th>Timestamp</th><th>Date</th></tr>';
-  seatData.forEach(seat => {
-    const name = seat.occupied ? seat.student : students[seat.number] || '';
-    const timestamp = seat.occupied ? seat.timestamp : 'Absent';
-    const date = seat.occupied ? seat.date : today;
-    html += `<tr><td>${seat.number}</td><td>${name}</td><td>${timestamp}</td><td>${date}</td></tr>`;
-  });
-  html += '</table>';
+    function handleLogin() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username === 'marvin' && password === 'grafil') {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('appPage').style.display = 'block';
+        initSeats();
+      } else {
+        alert('Incorrect username or password.');
+      }
+    }
 
-  const printWindow = window.open('', '', 'height=600,width=800');
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.print();
+    function handleManualSubmit(e) {
+      e.preventDefault();
+      const manualInput = document.getElementById('manualInput').value;
+      const seatNumber = parseInt(manualInput.replace(/[^0-9]/g, ''));
+      if (!isNaN(seatNumber)) {
+        const studentName = students[seatNumber] || 'Unknown';
+        const timestamp = new Date().toLocaleTimeString();
+        const updatedSeats = seatData.map(seat => 
+          seat.number === seatNumber ? { ...seat, occupied: true, student: studentName, timestamp, date: todayString } : seat
+        );
+        saveSeats(updatedSeats);
+        document.getElementById('manualInput').value = '';
+      }
+    }
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'seat_data.html';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+    function renderSeats() {
+      const seatGrid = document.getElementById('seatGrid');
+      seatGrid.innerHTML = '';
+      seatData.forEach(seat => {
+        const div = document.createElement('div');
+        div.className = 'seat' + (seat.occupied ? ' occupied' : '');
+        div.innerText = seat.number + ' - ' + (seat.occupied ? seat.student : (students[seat.number] || ''));
+        seatGrid.appendChild(div);
+      });
+    }
 
-initSeats();
-renderLogin();
-</script>
+    function handlePrintAndDownload() {
+      let content = '<html><head><title>Monthly Attendance Sheet</title></head><body>';
+      content += `<h2 style="text-align:center;">Monthly Class Attendance</h2>`;
+      content += `<p>Month/Year: ${monthYear}</p>`;
+      content += "<table border='1' style='border-collapse:collapse; width:100%; text-align:center'>";
+      
+      // Header Row with weekdays only
+      content += "<tr><th>ID</th><th>Name</th>";
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+      let weekdays = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        let d = new Date(year, month, day);
+        let dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        if (dayName !== "Sat" && dayName !== "Sun") {
+          let key = new Date(year, month, day).toLocaleDateString();
+          weekdays.push({ day, dayName, key });
+          content += `<th>${day}<br>${dayName}</th>`;
+        }
+      }
+      content += "</tr>";
+
+      // Rows for students
+      for (let i = 1; i <= 30; i++) {
+        content += `<tr><td>${i}</td><td>${students[i] || ''}</td>`;
+        weekdays.forEach(({ key }) => {
+          let status = '';
+          if (seatHistory[key]) {
+            let seat = seatHistory[key].find(s => s.number === i);
+            if (seat?.occupied) {
+              status = 'P';
+            } else {
+              status = 'A';
+            }
+          }
+          content += `<td>${status}</td>`;
+        });
+        content += "</tr>";
+      }
+
+      content += '</table>';
+      content += '<p>Legend: P = Present, L = Late, A = Absent</p>';
+      content += '</body></html>';
+
+      const printWindow = window.open('', '', 'height=600,width=800');
+      printWindow.document.write(content);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  </script>
 </body>
 </html>
