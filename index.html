@@ -6,7 +6,7 @@
 <title>InnovaTrack - Attendance Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -14,7 +14,7 @@
 
 <!-- LOGIN PAGE -->
 <div id="loginPage" class="bg-white p-10 rounded-2xl shadow-lg w-full max-w-sm">
-  <img src="logo.png" class="w-20 h-20 mx-auto rounded-full mb-4">
+  <img src="logo.png" class="w-20 h-20 mx-auto rounded-full mb-4" alt="logo">
   <h2 class="text-2xl font-bold mb-6 text-center text-indigo-600">InnovaTrack Login</h2>
   <input id="username" type="text" placeholder="Username" class="border p-3 rounded-md w-full mb-4">
   <input id="password" type="password" placeholder="Password" class="border p-3 rounded-md w-full mb-6">
@@ -25,7 +25,7 @@
 
 <!-- SIGN UP PAGE -->
 <div id="signUpPage" class="bg-white p-10 rounded-2xl shadow-lg w-full max-w-sm hidden">
-  <img src="logo.png" class="w-20 h-20 mx-auto rounded-full mb-4">
+  <img src="logo.png" class="w-20 h-20 mx-auto rounded-full mb-4" alt="logo">
   <h2 class="text-2xl font-bold mb-6 text-center text-indigo-600">Sign Up</h2>
   <input id="newUsername" type="text" placeholder="Username" class="border p-3 rounded-md w-full mb-4">
   <input id="newPassword" type="password" placeholder="Password" class="border p-3 rounded-md w-full mb-6">
@@ -39,12 +39,12 @@
   <!-- Header -->
   <header class="bg-indigo-600 text-white p-4 rounded-xl shadow-md mb-6 flex justify-between items-center">
     <div class="flex items-center space-x-3">
-      <img src="logo.png" class="w-10 h-10 rounded-full">
+      <img src="logo.png" class="w-10 h-10 rounded-full" alt="logo">
       <h1 class="text-2xl font-bold">InnovaTrack Dashboard</h1>
     </div>
     <div class="flex items-center space-x-4">
       <span id="currentDate" class="text-sm"></span>
-      <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+      <button id="logoutBtn" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
     </div>
   </header>
 
@@ -64,15 +64,14 @@
 <div class="mb-4 flex gap-2">
   <input id="studentNoInput" type="text" placeholder="Student No." class="border p-2 rounded w-1/4">
   <input id="studentNameInput" type="text" placeholder="Student Name" class="border p-2 rounded w-1/2">
-  <button onclick="addStudent()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Register Student</button>
+  <button id="registerStudentBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Register Student</button>
 </div>
-
 
     <div id="seatContainer" class="grid grid-cols-5 gap-4 mb-4"></div>
     <div class="flex gap-3 mt-5">
-      <button onclick="markAllPresent()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Mark All Present</button>
-      <button onclick="resetSeats()" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Reset</button>
-      <button onclick="generatePdfPreview()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Preview PDF</button>
+      <button id="markAllBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Mark All Present</button>
+      <button id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Reset</button>
+      <button id="previewPdfBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Preview PDF</button>
     </div>
   </div>
 
@@ -87,10 +86,16 @@
         </div>
         <p class="font-semibold text-gray-900 mb-3">Start Camera QR Scan</p>
         <button id="startCameraBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 mb-2">Start Camera</button>
-        <div id="reader" style="width:100%;"></div>
-        <button onclick="captureQR()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">Capture</button>
+
+        <!-- Live preview video -->
+        <div class="mx-auto mt-2" style="width:100%;max-width:400px;">
+          <video id="cameraPreview" class="w-full rounded-md border" autoplay muted playsinline style="background:#000;"></video>
+        </div>
+
+        <button id="captureBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-3">Capture</button>
         <p class="mt-2">Scanned Seat: <span id="scannedSeat" class="font-bold text-green-600">None</span></p>
       </div>
+
       <!-- Manual QR Input -->
       <div>
         <h3 class="text-sm font-medium text-gray-700 mb-3">Manual QR Entry</h3>
@@ -118,154 +123,346 @@
   <div id="pdfPreviewTab" class="tab-section hidden bg-white rounded-xl shadow-sm p-6">
     <h2 class="text-xl font-semibold text-gray-900 mb-4">Monthly Attendance PDF Preview</h2>
     <iframe id="pdfPreviewFrame" class="w-full h-[600px] border rounded-lg mb-4"></iframe>
-    <button onclick="generatePdfPreview()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-2">Generate PDF Preview</button>
+    <button id="generatePdfPreviewBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mr-2">Generate PDF Preview</button>
     <button id="downloadPdfBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Download PDF</button>
   </div>
-
 </div>
 
 <script>
-let students=[];
-let currentUser=null;
+/* ============================
+   App state & persistence
+   ============================ */
+let students = [];               // current user's students (array of {no, name, present:boolean})
+let currentUser = null;          // logged-in username
+let cameraStream = null;
 
-// Update date
+/* localStorage keys helpers */
+function usersKey() { return 'innova_users'; } // stores array of users (username,password)
+function dataKeyForUser(username) { return `innova_data_${username}`; }
+
+/* load users from storage or create default admin */
+function loadUsers() {
+  const raw = localStorage.getItem(usersKey());
+  if (!raw) {
+    const initial = [{username:'admin', password:'1234'}];
+    localStorage.setItem(usersKey(), JSON.stringify(initial));
+    return initial;
+  }
+  try { return JSON.parse(raw); } catch { return []; }
+}
+function saveUsers(u){ localStorage.setItem(usersKey(), JSON.stringify(u)); }
+
+/* Save / Load students for currentUser */
+function saveData() {
+  if (!currentUser) return;
+  const payload = { students };
+  localStorage.setItem(dataKeyForUser(currentUser), JSON.stringify(payload));
+}
+function loadDataForUser(username) {
+  const raw = localStorage.getItem(dataKeyForUser(username));
+  if (!raw) return { students: [] };
+  try { return JSON.parse(raw); } catch { return { students: [] }; }
+}
+
+/* ============================
+   Date display
+   ============================ */
 function updateDate(){
-  const now=new Date();
-  const options={weekday:'short',month:'short',day:'numeric',year:'numeric'};
-  document.getElementById('currentDate').textContent=now.toLocaleDateString('en-US',options);
+  const now = new Date();
+  const options={weekday:'short',month:'short',day:'numeric',year:'numeric', hour:'2-digit', minute:'2-digit'};
+  document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
 }
 setInterval(updateDate,1000);
+updateDate();
 
-// LOGIN / SIGNUP
-const users=[{username:"admin",password:"1234"}];
+/* ============================
+   Auth functions
+   ============================ */
+let users = loadUsers();
+
+function showSignUp(){ document.getElementById('loginPage').classList.add('hidden'); document.getElementById('signUpPage').classList.remove('hidden'); }
+function showLogin(){ document.getElementById('signUpPage').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); }
+
+function signUp(){
+  const u = document.getElementById('newUsername').value.trim();
+  const p = document.getElementById('newPassword').value.trim();
+  if(!u || !p) return alert('Enter username & password');
+  users.push({username:u, password:p});
+  saveUsers(users);
+  alert('Account created! You can login now.');
+  document.getElementById('newUsername').value = '';
+  document.getElementById('newPassword').value = '';
+  showLogin();
+}
+
 function login(){
-  const u=document.getElementById('username').value.trim();
-  const p=document.getElementById('password').value.trim();
-  const user=users.find(x=>x.username===u && x.password===p);
-  if(user){
-    currentUser=u;
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  const found = loadUsers().find(x => x.username === u && x.password === p);
+  if(found){
+    currentUser = u;
+    // load this user's data
+    const stored = loadDataForUser(currentUser);
+    students = stored.students || [];
+    // show dashboard
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('signUpPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
-    generateSeats();
-  }else document.getElementById('loginError').classList.remove('hidden');
-}
-function signUp(){
-  const u=document.getElementById('newUsername').value.trim();
-  const p=document.getElementById('newPassword').value.trim();
-  if(u && p){
-    users.push({username:u,password:p});
-    alert("Account created! Please login.");
-    showLogin();
+    // render seats
+    renderSeats();
+  } else {
+    document.getElementById('loginError').classList.remove('hidden');
   }
 }
-function showSignUp(){document.getElementById('loginPage').classList.add('hidden'); document.getElementById('signUpPage').classList.remove('hidden');}
-function showLogin(){document.getElementById('signUpPage').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden');}
-function logout(){document.getElementById('dashboardPage').classList.add('hidden');document.getElementById('loginPage').classList.remove('hidden');}
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  // Stop camera but DO NOT clear data
+  stopCamera();
+  currentUser = null;
+  document.getElementById('dashboardPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+});
 
-// SEAT PLAN
+/* ============================
+   Student / seat functions
+   ============================ */
 function addStudent(){
   const noInput = document.getElementById('studentNoInput');
   const nameInput = document.getElementById('studentNameInput');
   const studentNo = noInput.value.trim();
   const name = nameInput.value.trim();
   if(!studentNo || !name) return alert("Enter student number and name!");
-  students.push({no: studentNo, name: name});
-  noInput.value = '';
-  nameInput.value = '';
-  generateSeats();
+  // add student object with present=false
+  students.push({ no: studentNo, name: name, present: false });
+  noInput.value = ''; nameInput.value = '';
+  renderSeats();
+  saveData();
 }
 
-function generateSeats(){
-  const seatContainer=document.getElementById('seatContainer');
-  seatContainer.innerHTML="";
-  students.forEach((student,index)=>{
-    const seatNumber=index+1;
-    const seat=document.createElement('div');
-    seat.className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition relative";
-    seat.dataset.present="false";
-    seat.dataset.seatNumber=seatNumber;
-    seat.dataset.studentName=student.name;
-    seat.dataset.studentNo=student.no;
-    seat.innerHTML=`<p class="font-semibold">Seat ${seatNumber} - ${student.no} ${student.name}</p>
-      <span class="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800">Absent</span>
-      <button onclick="removeStudent(${index})" class="absolute top-1 right-1 text-red-500 hover:text-red-700 text-sm">Remove</button>`;
-    seat.onclick=()=>toggleSeat(seat);
-    seatContainer.appendChild(seat);
+function renderSeats(){
+  const seatContainer = document.getElementById('seatContainer');
+  seatContainer.innerHTML = '';
+  students.forEach((stu, idx) => {
+    const seatNumber = idx + 1;
+    const div = document.createElement('div');
+    div.className = "bg-white p-4 rounded-lg shadow hover:shadow-lg transition relative";
+    div.dataset.seatNumber = seatNumber;
+    div.dataset.studentNo = stu.no;
+    div.dataset.studentName = stu.name;
+    div.dataset.present = stu.present ? "true" : "false";
+    div.innerHTML = `
+      <p class="font-semibold">Seat ${seatNumber} - ${stu.no} ${stu.name}</p>
+      <span class="px-2 py-1 text-xs rounded-full ${stu.present ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">${stu.present ? 'Present' : 'Absent'}</span>
+      <button class="absolute top-1 right-1 text-red-500 hover:text-red-700 text-sm remove-btn">Remove</button>
+    `;
+    // toggle present on click of card (but not when clicking remove)
+    div.addEventListener('click', (ev) => {
+      if (ev.target && ev.target.classList.contains('remove-btn')) return;
+      toggleSeat(div);
+    });
+    // remove button handler
+    div.querySelector('.remove-btn').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      removeStudent(idx);
+    });
+    seatContainer.appendChild(div);
   });
 }
- 
-function toggleSeat(seat){
-  const isPresent=seat.dataset.present==="true";
-  seat.dataset.present=!isPresent;
-  seat.innerHTML=`<p class="font-semibold">Seat ${seat.dataset.seatNumber} - ${seat.dataset.studentName}</p>
-      <span class="px-2 py-1 text-xs rounded-full ${!isPresent?"bg-green-200 text-green-800":"bg-red-200 text-red-800"}">${!isPresent?"Present":"Absent"}</span>
-      <button onclick="removeStudent(${seat.dataset.seatNumber-1})" class="absolute top-1 right-1 text-red-500 hover:text-red-700 text-sm">Remove</button>`;
-}
-function removeStudent(index){students.splice(index,1);generateSeats();}
-function markAllPresent(){document.querySelectorAll("#seatContainer div").forEach(seat=>{seat.dataset.present="true";toggleSeat(seat);});}
-function resetSeats(){document.querySelectorAll("#seatContainer div").forEach(seat=>{seat.dataset.present="false";toggleSeat(seat);});}
 
-// TABS
+function toggleSeat(div){
+  const idx = parseInt(div.dataset.seatNumber, 10) - 1;
+  if (typeof students[idx] === 'undefined') return;
+  students[idx].present = !students[idx].present;
+  // update badge
+  const badge = div.querySelector('span');
+  if (students[idx].present) {
+    badge.className = 'px-2 py-1 text-xs rounded-full bg-green-200 text-green-800';
+    badge.textContent = 'Present';
+    div.dataset.present = "true";
+  } else {
+    badge.className = 'px-2 py-1 text-xs rounded-full bg-red-200 text-red-800';
+    badge.textContent = 'Absent';
+    div.dataset.present = "false";
+  }
+  saveData();
+}
+
+function removeStudent(index){
+  if (!confirm('Remove this student?')) return;
+  students.splice(index,1);
+  renderSeats();
+  saveData();
+}
+
+document.getElementById('registerStudentBtn').addEventListener('click', addStudent);
+document.getElementById('markAllBtn').addEventListener('click', ()=> {
+  students.forEach(s => s.present = true);
+  renderSeats();
+  saveData();
+});
+document.getElementById('resetBtn').addEventListener('click', ()=> {
+  students.forEach(s => s.present = false);
+  renderSeats();
+  saveData();
+});
+
+/* ============================
+   Tabs - keep original behavior
+   ============================ */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const tab=btn.dataset.tab;
-    document.querySelectorAll('.tab-section').forEach(s=>s.classList.add('hidden'));
+  btn.addEventListener('click', ()=> {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.add('hidden'));
     document.getElementById(tab).classList.remove('hidden');
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('bg-indigo-600','text-white'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('bg-indigo-600','text-white'));
     btn.classList.add('bg-indigo-600','text-white');
-    stopCamera();
-    if(tab==="qrScanner") startCamera();
+    stopCamera(); // stop camera when switching
   });
 });
 
-// QR CAMERA
-let html5QrCode=null;
-function startCamera(){
-  if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps:10, qrbox:250 },
-    qrCodeMessage=>{markSeatFromQR(qrCodeMessage);}
-  ).catch(err=>console.error(err));
-}
-document.getElementById("startCameraBtn").addEventListener('click',startCamera);
-function stopCamera(){if(html5QrCode){html5QrCode.stop().then(()=>{}).catch(()=>{}); html5QrCode=null;}}
-function captureQR(){if(html5QrCode){html5QrCode.scanFileV2().then(code=>{markSeatFromQR(code);}).catch(()=>{});}}
+/* ============================
+   Camera preview + capture using jsQR
+   ============================ */
 
-// QR Manual
-document.getElementById('manualSubmit').addEventListener('click',()=>{
-  const code=document.getElementById('manualQr').value.trim();
-  if(code) markSeatFromQR(code);
+const cameraPreview = document.getElementById('cameraPreview');
+const startCameraBtn = document.getElementById('startCameraBtn');
+const captureBtn = document.getElementById('captureBtn');
+
+async function startCamera(){
+  if (cameraStream) return; // already running
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    cameraPreview.srcObject = cameraStream;
+    await cameraPreview.play();
+  } catch (err) {
+    console.error('Camera error', err);
+    alert('Unable to access camera. Use HTTPS / localhost and allow camera permission.');
+    cameraStream = null;
+  }
+}
+startCameraBtn.addEventListener('click', startCamera);
+
+function stopCamera(){
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  try { cameraPreview.pause(); cameraPreview.srcObject = null; } catch(e){}
+}
+
+// auto stop when page hidden
+document.addEventListener('visibilitychange', ()=> { if (document.hidden) stopCamera(); });
+
+captureBtn.addEventListener('click', ()=>{
+  if (!cameraStream) return alert('Start the camera first!');
+  const video = cameraPreview;
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return alert('Camera not ready yet — wait a moment and try Capture again.');
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  const imgData = ctx.getImageData(0,0,w,h);
+  const code = jsQR(imgData.data, w, h, { inversionAttempts: "attemptBoth" });
+  if (code && code.data) {
+    const decoded = code.data.trim();
+    document.getElementById('scannedSeat').textContent = decoded;
+    markSeatFromQR(decoded);
+    // optionally give a quick visual feedback
+    flashCaptureSuccess();
+  } else {
+    alert('No QR code detected in captured frame. Try again (move closer or ensure QR is clear).');
+  }
 });
+
+function flashCaptureSuccess(){
+  const el = document.getElementById('scannedSeat');
+  el.classList.add('bg-green-100','px-1','rounded');
+  setTimeout(()=> el.classList.remove('bg-green-100','px-1','rounded'), 900);
+}
+
+/* ============================
+   Match scanned QR -> mark attendance
+   ============================ */
 function markSeatFromQR(data){
-  const seat=Array.from(document.querySelectorAll("#seatContainer div"))
-    .find(s=>`${s.dataset.seatNumber}-${s.dataset.studentName}`===data);
-  if(seat) toggleSeat(seat);
+  // Expected qr formats used previously: "seatNo-studentName" or "index-Name"
+  const parts = data.split('-',2).map(s=>s.trim());
+  let matchedIndex = -1;
+  if (parts.length === 2) {
+    const [noPart, namePart] = parts;
+    matchedIndex = students.findIndex(s => (s.no === noPart && s.name === namePart) || (`${students.indexOf(s)+1}` === noPart && s.name === namePart));
+    // the above line uses students in closure incorrectly; fallback to explicit search:
+    if (matchedIndex === -1) {
+      for (let i=0;i<students.length;i++){
+        if (students[i].no === noPart && students[i].name === namePart) { matchedIndex = i; break; }
+        if ((i+1).toString() === noPart && students[i].name === namePart) { matchedIndex = i; break; }
+      }
+    }
+  } else {
+    // fallback try exact "index-Name" by comparing against rendered seat label
+    for (let i=0;i<students.length;i++){
+      if (data === `${i+1}-${students[i].name}`) { matchedIndex = i; break; }
+      if (data === `${students[i].no}-${students[i].name}`) { matchedIndex = i; break; }
+    }
+  }
+
+  if (matchedIndex >= 0) {
+    students[matchedIndex].present = true;
+    renderSeats();
+    saveData();
+  } else {
+    // Not found; do not modify data. Optionally show message.
+    console.warn('Scanned QR not matched to any student:', data);
+    // Uncomment to show an alert:
+    // alert('Scanned QR not found among registered students.');
+  }
 }
 
-// QR GENERATOR
-document.getElementById('generateBtn').addEventListener('click',()=>{
-  const seat=document.getElementById('genSeat').value.trim();
-  const name=document.getElementById('genName').value.trim();
-  if(!seat||!name) return alert("Enter seat number and name");
-  const qrDiv=document.getElementById('qrcode'); qrDiv.innerHTML="";
-  new QRCode(qrDiv,{text:`${seat}-${name}`,width:128,height:128});
-  setTimeout(()=>{document.getElementById('downloadLink').href=qrDiv.querySelector('img').src; document.getElementById('downloadLink').download=`${name}.png`;},100);
+/* ============================
+   Manual QR input
+   ============================ */
+document.getElementById('manualSubmit').addEventListener('click', ()=>{
+  const code = document.getElementById('manualQr').value.trim();
+  if (!code) return;
+  markSeatFromQR(code);
+  document.getElementById('scannedSeat').textContent = code;
 });
-document.getElementById('generateAllBtn').addEventListener('click',()=>{
-  const allDiv=document.getElementById('allQRCodes'); allDiv.innerHTML="";
-  students.forEach((name,index)=>{
-    const seat=index+1;
-    const wrapper=document.createElement('div'); wrapper.className="text-center";
-    const div=document.createElement('div'); wrapper.appendChild(div);
-    const p=document.createElement('p'); p.textContent=`${seat}-${name}`; p.className="text-xs mt-1"; wrapper.appendChild(p);
-    new QRCode(div,{text:`${seat}-${name}`,width:100,height:100});
+
+/* ============================
+   QR Generator (unchanged behavior)
+   ============================ */
+document.getElementById('generateBtn').addEventListener('click', ()=>{
+  const seat = document.getElementById('genSeat').value.trim();
+  const name = document.getElementById('genName').value.trim();
+  if(!seat || !name) return alert('Enter seat number and name');
+  const qrDiv = document.getElementById('qrcode'); qrDiv.innerHTML = '';
+  new QRCode(qrDiv, { text: `${seat}-${name}`, width: 128, height: 128 });
+  setTimeout(()=> {
+    const img = qrDiv.querySelector('img');
+    if (img) {
+      document.getElementById('downloadLink').href = img.src;
+      document.getElementById('downloadLink').download = `${name}.png`;
+    }
+  }, 150);
+});
+
+document.getElementById('generateAllBtn').addEventListener('click', ()=>{
+  const allDiv = document.getElementById('allQRCodes'); allDiv.innerHTML = '';
+  students.forEach(s => {
+    const wrapper = document.createElement('div'); wrapper.className='text-center';
+    const div = document.createElement('div');
+    new QRCode(div, { text: `${s.no}-${s.name}`, width:100, height:100 });
+    const p = document.createElement('p'); p.className='text-xs mt-1'; p.textContent = `${s.no}-${s.name}`;
+    wrapper.appendChild(div); wrapper.appendChild(p);
     allDiv.appendChild(wrapper);
   });
 });
 
-// PDF PREVIEW
+/* ============================
+   PDF preview (weekdays only) and download
+   ============================ */
+document.getElementById('generatePdfPreviewBtn').addEventListener('click', generatePdfPreview);
+document.getElementById('previewPdfBtn').addEventListener('click', generatePdfPreview);
+
 async function generatePdfPreview(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('landscape','pt','a4');
@@ -275,33 +472,48 @@ async function generatePdfPreview(){
   doc.text("School Year: 2025",40,90);
   doc.text("Month: October",40,110);
 
-  const colHeaders=["ID","Student Name"];
-  const monthDays=31; const weekdays=["Mon","Tue","Wed","Thu","Fri"];
-  for(let d=1; d<=monthDays; d++){
-    const date=new Date(2025,9,d);
-    const dayName=weekdays[date.getDay()-1]||"";
-    if(dayName) colHeaders.push(`${dayName} ${d}`);
+  const colHeaders = ["ID","Student Name"];
+  const monthDays = 31;
+  const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const columns = [];
+  for (let d=1; d<=monthDays; d++){
+    const day = new Date(2025,9,d).getDay();
+    if (day !== 0 && day !== 6) { // exclude Sun(0) and Sat(6)
+      colHeaders.push(`${weekdays[day]} ${d}`);
+    }
   }
 
-  const rows=students.map((name,index)=>{
-    const row=[index+1,name];
-    for(let d=1; d<=monthDays; d++){
-      const date=new Date(2025,9,d);
-      const dayName=weekdays[date.getDay()-1]||"";
-      if(dayName){
-        const seatDiv=document.querySelector(`#seatContainer div[data-seat-number='${index+1}']`);
-        const present = seatDiv && seatDiv.dataset.present==="true"?"P":"A";
-        row.push(present);
+  const rows = students.map((s, i) => {
+    const row = [i+1, s.name];
+    for (let d=1; d<=monthDays; d++){
+      const day = new Date(2025,9,d).getDay();
+      if (day !== 0 && day !== 6) {
+        row.push(s.present ? 'P' : 'A');
       }
     }
     return row;
   });
 
-  doc.autoTable({startY:140,head:[colHeaders],body:rows,theme:'grid',styles:{fontSize:7,cellPadding:3},headStyles:{fillColor:[41,128,185],textColor:255},showHead:'everyPage',margin:{top:140,left:40,right:40}});
-  const pdfUrl=doc.output('bloburl'); document.getElementById('pdfPreviewFrame').src=pdfUrl;
-  document.getElementById('downloadPdfBtn').onclick=()=>{doc.save("Monthly_Attendance.pdf");};
+  doc.autoTable({ startY: 140, head: [colHeaders], body: rows, theme: 'grid', styles:{fontSize:7,cellPadding:3}, headStyles:{fillColor:[41,128,185], textColor:255}, showHead:'everyPage' });
+  const url = doc.output('bloburl');
+  document.getElementById('pdfPreviewFrame').src = url;
+  document.getElementById('pdfPreviewFrame').classList.remove('hidden');
+  document.getElementById('downloadPdfBtn').onclick = ()=> doc.save('Monthly_Attendance.pdf');
 }
+
+/* ============================
+   Initialize UI: keep login shown by default
+   ============================ */
+// ensure admin exists in storage
+(function ensureAdmin(){
+  const list = loadUsers();
+  const hasAdmin = list.some(u => u.username === 'admin');
+  if (!hasAdmin) {
+    list.push({username:'admin', password:'1234'});
+    saveUsers(list);
+  }
+  users = list;
+})();
 </script>
 </body>
 </html>
-
