@@ -11,13 +11,6 @@ This is the InnovaTrack Attendance App, now ready to run in a browser or on Gitp
    - Password: `grafil`
 3. Mark seats manually and print or download the seat data.
 
-### Option 2: Gitpod
-1. Open Gitpod: https://gitpod.io
-2. In the URL bar, type:
-   Replace `marvsgrafil` with your GitHub username.
-3. Press Enter → Gitpod IDE opens.
-4. Open `index.html` → click **Open Preview** → App runs.
-
 ## Features
 - Login authentication
 - Manual seat input
